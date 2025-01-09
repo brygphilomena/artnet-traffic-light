@@ -9,11 +9,9 @@
   int blinkAmount;
   int dmxUniverse;
   int greenChannel;
-  int greenDelay;
-  int lightdelay;
+  int lightDelay;
   int mode;
   int redChannel;
-  int redDelay;
   int sequence;
   bool greenOn;
   bool redOn;
@@ -63,7 +61,8 @@ void setup() {
   Serial.println((String)"================");
   mode = 1;
   artnet.begin(); // waiting for Art-Net in default port
-  artnet.subscribe(universe1, [&](const uint8_t* data, const uint16_t size) {
+  artnet.subscribeArtDmxUniverse(dmxUniverse, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote) {
+       // if Artnet packet comes to this universe(0-15), this function is called
     runauto = 0;
     Serial.print("lambda : artnet data (universe : ");
     Serial.print(universe1);
@@ -77,32 +76,49 @@ void setup() {
     }
     Serial.println();
   });
-  if (redDelay == NULL) {
+  // artnet.subscribeArtDmxUniverse(net, subnet, dmxUniverse, artnetOnOff);
+  /*
+  artnet.subscribeArtDmxUniverse(universe1, [&](const uint8_t* data, const uint16_t size) {
+    runauto = 0;
+    Serial.print("lambda : artnet data (universe : ");
+    Serial.print(universe1);
+    Serial.print(", size = ");
+    Serial.print(size);
+    Serial.print(") :");
+    for (size_t i = 0; i < size; ++i) {
+      Serial.print(data[i]);
+      Serial.print(",");
+      artnetOnOff(i + 1, data[i]);
+    }
+    Serial.println();
+  });
+  */
+/*  if (redDelay == NULL) {
     redDelay = lightdelay;
   };
   if (greenDelay == NULL) {
     greenDelay = lightdelay;
   };
+  */
 }
 
 void loop() {
   ArduinoCloud.update();
   // Your code here
   artnet.parse();
+  
   if (runauto) {
     Serial.println(millis()+(String)" Running auto run");
     if (mode == 1) {
-//  	  if (millis() - previousMillis >= lightdelay * 1000) {
   	    // Turn red light on and green light off
   	    Serial.println(millis()+(String)" Running mode"+mode+(String)" Red On, Green Off");
         digitalWrite(RED_RELAY_PIN, LOW);
         digitalWrite(GREEN_RELAY_PIN, HIGH);
         previousMillis = millis();
         mode = 2;
-//      }
   	}
   	else if (mode == 2) {
-  	  if (millis() - previousMillis >= redDelay * 1000) {
+  	  if (millis() - previousMillis >= lightDelay * 1000) {
     	  // Turn red light off and green light on
     	  Serial.println(millis()+(String)" Running mode"+mode+(String)" Red Off, Green On");
         digitalWrite(RED_RELAY_PIN, HIGH);
@@ -112,7 +128,7 @@ void loop() {
   	  }
   	}
   	else if (mode == 3) {
-  	  if (millis() - previousMillis >= greenDelay * 1000) {
+  	  if (millis() - previousMillis >= lightDelay * 1000) {
       	Serial.println(millis()+(String)" Running mode"+mode+(String)" Blink Red");
       	digitalWrite(GREEN_RELAY_PIN, HIGH);
   	    i = 0;
@@ -135,6 +151,7 @@ void loop() {
 	  }
   Serial.println(millis()+(String)" End of runauto");
   }
+  
 }
 
 
@@ -166,7 +183,7 @@ void artnetOnOff(int channel, int value) {
       redOn = 0;
     }
   }
-  if (channel == greenChannel) {
+  if (channel == redChannel + 1 ) {
     if (value >= 128) {
       digitalWrite(GREEN_RELAY_PIN, LOW);
     }
@@ -224,22 +241,6 @@ void onBlinkAmountChange()  {
 }
 
 /*
-  Since GreenDelay is READ_WRITE variable, onGreenDelayChange() is
-  executed every time a new value is received from IoT Cloud.
-*/
-void onGreenDelayChange()  {
-  // Add your code here to act upon GreenDelay change
-}
-
-/*
-  Since RedDelay is READ_WRITE variable, onRedDelayChange() is
-  executed every time a new value is received from IoT Cloud.
-*/
-void onRedDelayChange()  {
-  // Add your code here to act upon RedDelay change
-}
-
-/*
   Since Sequence is READ_WRITE variable, onSequenceChange() is
   executed every time a new value is received from IoT Cloud.
 */
@@ -255,13 +256,6 @@ void onRedChannelChange()  {
   // Add your code here to act upon RedChannel change
 }
 
-/*
-  Since GreenChannel is READ_WRITE variable, onGreenChannelChange() is
-  executed every time a new value is received from IoT Cloud.
-*/
-void onGreenChannelChange()  {
-  // Add your code here to act upon GreenChannel change
-}
 
 /*
   Since DmxUniverse is READ_WRITE variable, onDmxUniverseChange() is
@@ -269,4 +263,14 @@ void onGreenChannelChange()  {
 */
 void onDmxUniverseChange()  {
   // Add your code here to act upon DmxUniverse change
+}
+
+
+
+/*
+  Since GreenChannel is READ_WRITE variable, onGreenChannelChange() is
+  executed every time a new value is received from IoT Cloud.
+*/
+void onGreenChannelChange()  {
+  // Add your code here to act upon GreenChannel change
 }
